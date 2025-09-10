@@ -92,7 +92,8 @@ class CompanyHub_Frontend {
             'siteUrl' => home_url(),
             'pluginUrl' => COMPANY_HUB_PLUGIN_URL,
             'apiUrl' => rest_url('company-hub/v1/'),
-            'nonce' => wp_create_nonce('wp_rest')
+            'nonce' => wp_create_nonce('wp_rest'),
+            'ajaxUrl' => admin_url('admin-ajax.php')
         );
         
         ?>
@@ -104,17 +105,10 @@ class CompanyHub_Frontend {
             <meta name="robots" content="noindex, nofollow">
             <title><?php echo esc_html($this->get_page_title($page)); ?> - Company Hub</title>
             
-            <?php
-            // Enqueue styles and scripts
-            wp_enqueue_style('company-hub-app');
-            wp_enqueue_script('company-hub-app');
-            
-            // Output head
-            wp_head();
-            ?>
+            <?php wp_head(); ?>
             
             <script>
-                window.companyHubInitialData = <?php echo wp_json_encode($initial_data); ?>;
+                window.companyHub = <?php echo wp_json_encode($initial_data); ?>;
             </script>
         </head>
         <body class="company-hub-app company-hub-page-<?php echo esc_attr($page); ?>">

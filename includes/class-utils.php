@@ -139,9 +139,18 @@ class CompanyHub_Utils {
             $key = defined('AUTH_KEY') ? AUTH_KEY : 'company-hub-default-key';
         }
         
+        if (empty($data)) {
+            return '';
+        }
+        
         $method = 'AES-256-CBC';
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length($method));
+        $iv_length = openssl_cipher_iv_length($method);
+        $iv = openssl_random_pseudo_bytes($iv_length);
         $encrypted = openssl_encrypt($data, $method, $key, 0, $iv);
+        
+        if ($encrypted === false) {
+            return '';
+        }
         
         return base64_encode($iv . $encrypted);
     }
@@ -151,13 +160,28 @@ class CompanyHub_Utils {
             $key = defined('AUTH_KEY') ? AUTH_KEY : 'company-hub-default-key';
         }
         
+        if (empty($encrypted_data)) {
+            return '';
+        }
+        
         $data = base64_decode($encrypted_data);
+        if ($data === false) {
+            return '';
+        }
+        
         $method = 'AES-256-CBC';
         $iv_length = openssl_cipher_iv_length($method);
+        
+        if (strlen($data) < $iv_length) {
+            return '';
+        }
+        
         $iv = substr($data, 0, $iv_length);
         $encrypted = substr($data, $iv_length);
         
-        return openssl_decrypt($encrypted, $method, $key, 0, $iv);
+        $decrypted = openssl_decrypt($encrypted, $method, $key, 0, $iv);
+        
+        return $decrypted !== false ? $decrypted : '';
     }
     
     public static function log_activity($user_id, $action, $details = array()) {

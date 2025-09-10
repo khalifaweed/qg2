@@ -90,37 +90,70 @@ function Sites() {
 
   const handleEdit = (site) => {
     setFormData({
+      // Identification
       name: site.name || '',
       primary_url: site.primary_url || '',
       other_urls: site.other_urls || '',
       category: site.category || '',
       cms: site.cms || '',
       status: site.status || 'active',
+      
+      // Technical Management
       server: site.server || '',
       hosting_provider: site.hosting_provider || '',
       hosting_type: site.hosting_type || 'shared',
-      ftp_credentials: site.ftp_credentials ? JSON.parse(site.ftp_credentials) : { host: '', username: '', password: '', port: '21' },
-      ssh_credentials: site.ssh_credentials ? JSON.parse(site.ssh_credentials) : { host: '', username: '', password: '', port: '22' },
-      db_credentials: site.db_credentials ? JSON.parse(site.db_credentials) : { host: '', database: '', username: '', password: '', port: '3306' },
+      ftp_credentials: (() => {
+        try {
+          return site.ftp_credentials ? JSON.parse(site.ftp_credentials) : { host: '', username: '', password: '', port: '21' };
+        } catch (e) {
+          return { host: '', username: '', password: '', port: '21' };
+        }
+      })(),
+      ssh_credentials: (() => {
+        try {
+          return site.ssh_credentials ? JSON.parse(site.ssh_credentials) : { host: '', username: '', password: '', port: '22' };
+        } catch (e) {
+          return { host: '', username: '', password: '', port: '22' };
+        }
+      })(),
+      db_credentials: (() => {
+        try {
+          return site.db_credentials ? JSON.parse(site.db_credentials) : { host: '', database: '', username: '', password: '', port: '3306' };
+        } catch (e) {
+          return { host: '', database: '', username: '', password: '', port: '3306' };
+        }
+      })(),
+      
+      // Responsible
       responsible_user_id: site.responsible_user_id || '',
       team_members: site.team_members || '',
       external_providers: site.external_providers || '',
+      
+      // Integrations
       google_analytics_id: site.google_analytics_id || '',
       search_console_url: site.search_console_url || '',
       tag_manager_id: site.tag_manager_id || '',
       facebook_pixel_id: site.facebook_pixel_id || '',
       webhook_urls: site.webhook_urls || '',
+      
+      // SEO & Marketing
       main_keywords: site.main_keywords || '',
       backlinks_count: site.backlinks_count || 0,
       last_audit_date: site.last_audit_date || '',
       indexation_status: site.indexation_status || 'unknown',
+      
+      // Financial
       hosting_cost: site.hosting_cost || 0,
       extra_costs: site.extra_costs || 0,
       estimated_revenue: site.estimated_revenue || 0,
       roi: site.roi || 0,
+      
+      // Monitoring
       ssl_status: site.ssl_status || 'valid',
       dns_status: site.dns_status || 'ok',
       uptime_alerts: site.uptime_alerts || 'enabled',
+      
+      // Documentation
       internal_notes: site.internal_notes || ''
     });
     setEditingId(site.id);

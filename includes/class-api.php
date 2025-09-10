@@ -295,20 +295,35 @@ class CompanyHub_API {
             SELECT s.*, u.username as responsible_name 
             FROM {$wpdb->prefix}companyhub_sites s 
             LEFT JOIN {$wpdb->prefix}ch_users u ON s.responsible_user_id = u.id 
-            WHERE s.status != 'deleted'
+            WHERE s.status != 'deleted' OR s.status IS NULL
             ORDER BY s.created_at DESC
         ");
         
         // Decrypt sensitive data
         foreach ($sites as &$site) {
             if (!empty($site->ftp_credentials)) {
-                $site->ftp_credentials = CompanyHub_Utils::decrypt_data($site->ftp_credentials);
+                try {
+                    $decrypted = CompanyHub_Utils::decrypt_data($site->ftp_credentials);
+                    $site->ftp_credentials = $decrypted;
+                } catch (Exception $e) {
+                    $site->ftp_credentials = '';
+                }
             }
             if (!empty($site->ssh_credentials)) {
-                $site->ssh_credentials = CompanyHub_Utils::decrypt_data($site->ssh_credentials);
+                try {
+                    $decrypted = CompanyHub_Utils::decrypt_data($site->ssh_credentials);
+                    $site->ssh_credentials = $decrypted;
+                } catch (Exception $e) {
+                    $site->ssh_credentials = '';
+                }
             }
             if (!empty($site->db_credentials)) {
-                $site->db_credentials = CompanyHub_Utils::decrypt_data($site->db_credentials);
+                try {
+                    $decrypted = CompanyHub_Utils::decrypt_data($site->db_credentials);
+                    $site->db_credentials = $decrypted;
+                } catch (Exception $e) {
+                    $site->db_credentials = '';
+                }
             }
         }
         
@@ -386,17 +401,29 @@ class CompanyHub_API {
         // Encrypt sensitive credentials
         $ftp_credentials = $request->get_param('ftp_credentials');
         if (!empty($ftp_credentials)) {
-            $data['ftp_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($ftp_credentials));
+            if (is_array($ftp_credentials)) {
+                $data['ftp_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($ftp_credentials));
+            } else {
+                $data['ftp_credentials'] = CompanyHub_Utils::encrypt_data($ftp_credentials);
+            }
         }
         
         $ssh_credentials = $request->get_param('ssh_credentials');
         if (!empty($ssh_credentials)) {
-            $data['ssh_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($ssh_credentials));
+            if (is_array($ssh_credentials)) {
+                $data['ssh_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($ssh_credentials));
+            } else {
+                $data['ssh_credentials'] = CompanyHub_Utils::encrypt_data($ssh_credentials);
+            }
         }
         
         $db_credentials = $request->get_param('db_credentials');
         if (!empty($db_credentials)) {
-            $data['db_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($db_credentials));
+            if (is_array($db_credentials)) {
+                $data['db_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($db_credentials));
+            } else {
+                $data['db_credentials'] = CompanyHub_Utils::encrypt_data($db_credentials);
+            }
         }
         
         // Required fields validation
@@ -404,10 +431,27 @@ class CompanyHub_API {
             return new WP_Error('missing_required_fields', 'Name and primary URL are required', array('status' => 400));
         }
         
+        // Prepare data array with proper format specifiers
+        $insert_data = array();
+        $format_array = array();
+        
+        foreach ($data as $key => $value) {
+            $insert_data[$key] = $value;
+            
+            // Define format based on field type
+            if (in_array($key, array('responsible_user_id', 'backlinks_count'))) {
+                $format_array[] = '%d';
+            } elseif (in_array($key, array('hosting_cost', 'extra_costs', 'estimated_revenue', 'roi'))) {
+                $format_array[] = '%f';
+            } else {
+                $format_array[] = '%s';
+            }
+        }
+        
         $result = $wpdb->insert(
             $wpdb->prefix . 'companyhub_sites',
-            $data,
-            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+            $insert_data,
+            $format_array
         );
         
         if ($result) {
@@ -416,7 +460,9 @@ class CompanyHub_API {
             // Log activity
             $auth = CompanyHub_Auth::get_instance();
             $current_user = $auth->get_current_user();
-            CompanyHub_Utils::log_activity($current_user->id, 'site_created', array('site_id' => $site_id, 'site_name' => $data['name']));
+            if ($current_user) {
+                CompanyHub_Utils::log_activity($current_user->id, 'site_created', array('site_id' => $site_id, 'site_name' => $data['name']));
+            }
             
             return rest_ensure_response(array('success' => true, 'site_id' => $site_id));
         } else {
@@ -472,24 +518,53 @@ class CompanyHub_API {
         // Encrypt sensitive credentials
         $ftp_credentials = $request->get_param('ftp_credentials');
         if (!empty($ftp_credentials)) {
-            $data['ftp_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($ftp_credentials));
+            if (is_array($ftp_credentials)) {
+                $data['ftp_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($ftp_credentials));
+            } else {
+                $data['ftp_credentials'] = CompanyHub_Utils::encrypt_data($ftp_credentials);
+            }
         }
         
         $ssh_credentials = $request->get_param('ssh_credentials');
         if (!empty($ssh_credentials)) {
-            $data['ssh_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($ssh_credentials));
+            if (is_array($ssh_credentials)) {
+                $data['ssh_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($ssh_credentials));
+            } else {
+                $data['ssh_credentials'] = CompanyHub_Utils::encrypt_data($ssh_credentials);
+            }
         }
         
         $db_credentials = $request->get_param('db_credentials');
         if (!empty($db_credentials)) {
-            $data['db_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($db_credentials));
+            if (is_array($db_credentials)) {
+                $data['db_credentials'] = CompanyHub_Utils::encrypt_data(wp_json_encode($db_credentials));
+            } else {
+                $data['db_credentials'] = CompanyHub_Utils::encrypt_data($db_credentials);
+            }
+        }
+        
+        // Prepare update data with proper format specifiers
+        $update_data = array();
+        $format_array = array();
+        
+        foreach ($data as $key => $value) {
+            $update_data[$key] = $value;
+            
+            // Define format based on field type
+            if (in_array($key, array('responsible_user_id', 'backlinks_count'))) {
+                $format_array[] = '%d';
+            } elseif (in_array($key, array('hosting_cost', 'extra_costs', 'estimated_revenue', 'roi'))) {
+                $format_array[] = '%f';
+            } else {
+                $format_array[] = '%s';
+            }
         }
         
         $result = $wpdb->update(
             $wpdb->prefix . 'companyhub_sites',
-            $data,
+            $update_data,
             array('id' => $id),
-            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s', '%s'),
+            $format_array,
             array('%d')
         );
         
@@ -497,7 +572,9 @@ class CompanyHub_API {
             // Log activity
             $auth = CompanyHub_Auth::get_instance();
             $current_user = $auth->get_current_user();
-            CompanyHub_Utils::log_activity($current_user->id, 'site_updated', array('site_id' => $id, 'site_name' => $data['name']));
+            if ($current_user) {
+                CompanyHub_Utils::log_activity($current_user->id, 'site_updated', array('site_id' => $id, 'site_name' => $data['name']));
+            }
             
             return rest_ensure_response(array('success' => true));
         } else {

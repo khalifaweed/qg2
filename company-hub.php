@@ -224,6 +224,12 @@ class CompanyHub {
             'nonce' => wp_create_nonce('wp_rest'),
             'pluginUrl' => COMPANY_HUB_PLUGIN_URL,
             'currentPage' => get_query_var('company_hub_page', 'dashboard')
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'strings' => array(
+                'confirmDelete' => __('Tem certeza que deseja excluir?', 'company-hub'),
+                'error' => __('Erro ao processar solicitação', 'company-hub'),
+                'success' => __('Operação realizada com sucesso', 'company-hub')
+            )
         ));
     }
     
