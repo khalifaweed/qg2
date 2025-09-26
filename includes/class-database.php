@@ -145,11 +145,17 @@ class CompanyHub_Database {
             target_url varchar(500) NOT NULL,
             anchor_text varchar(255),
             type enum('internal','external') DEFAULT 'external',
+            site_id mediumint(9),
+            price decimal(10,2) DEFAULT 0.00,
+            client_name varchar(255),
+            placement_date date,
+            notes text,
             status enum('active','broken','removed') DEFAULT 'active',
             last_checked datetime,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
+            KEY site_id (site_id),
             KEY type (type),
             KEY status (status)
         ) $charset_collate;";
@@ -159,13 +165,16 @@ class CompanyHub_Database {
         $sql_seo_keywords = "CREATE TABLE $table_seo_keywords (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             keyword varchar(255) NOT NULL,
+            site_id mediumint(9),
             target_url varchar(500),
             search_volume int DEFAULT 0,
             difficulty enum('easy','medium','hard') DEFAULT 'medium',
+            current_position int,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
-            KEY keyword (keyword)
+            KEY keyword (keyword),
+            KEY site_id (site_id)
         ) $charset_collate;";
         
         // SEO Rankings table
@@ -173,6 +182,7 @@ class CompanyHub_Database {
         $sql_seo_rankings = "CREATE TABLE $table_seo_rankings (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             keyword varchar(255) NOT NULL,
+            site_id mediumint(9),
             target_url varchar(500),
             current_position int,
             previous_position int,
@@ -180,7 +190,8 @@ class CompanyHub_Database {
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
-            KEY keyword (keyword)
+            KEY keyword (keyword),
+            KEY site_id (site_id)
         ) $charset_collate;";
         
         // SEO Audits table

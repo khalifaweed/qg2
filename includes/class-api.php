@@ -983,7 +983,9 @@ class CompanyHub_API {
             'keyword' => $security->sanitize_input($request->get_param('keyword')),
             'target_url' => $security->sanitize_input($request->get_param('target_url'), 'url'),
             'search_volume' => $security->sanitize_input($request->get_param('search_volume'), 'int'),
-            'difficulty' => $security->sanitize_input($request->get_param('difficulty'))
+            'difficulty' => $security->sanitize_input($request->get_param('difficulty')),
+            'site_id' => $security->sanitize_input($request->get_param('site_id'), 'int'),
+            'current_position' => $security->sanitize_input($request->get_param('current_position'), 'int')
         );
         
         if (empty($data['keyword'])) {
@@ -993,7 +995,7 @@ class CompanyHub_API {
         $result = $wpdb->insert(
             $wpdb->prefix . 'ch_seo_keywords',
             $data,
-            array('%s', '%s', '%d', '%s')
+            array('%s', '%s', '%d', '%s', '%d', '%d')
         );
         
         if ($result) {
@@ -1003,12 +1005,141 @@ class CompanyHub_API {
         }
     }
     
+    public static function update_seo_keyword($request) {
+        global $wpdb;
+        
+        $id = intval($request->get_param('id'));
+        $security = CompanyHub_Security::get_instance();
+        
+        $data = array(
+            'keyword' => $security->sanitize_input($request->get_param('keyword')),
+            'target_url' => $security->sanitize_input($request->get_param('target_url'), 'url'),
+            'search_volume' => $security->sanitize_input($request->get_param('search_volume'), 'int'),
+            'difficulty' => $security->sanitize_input($request->get_param('difficulty')),
+            'site_id' => $security->sanitize_input($request->get_param('site_id'), 'int'),
+            'current_position' => $security->sanitize_input($request->get_param('current_position'), 'int')
+        );
+        
+        $result = $wpdb->update(
+            $wpdb->prefix . 'ch_seo_keywords',
+            $data,
+            array('id' => $id),
+            array('%s', '%s', '%d', '%s', '%d', '%d'),
+            array('%d')
+        );
+        
+        if ($result !== false) {
+            return rest_ensure_response(array('success' => true));
+        } else {
+            return new WP_Error('update_failed', 'Failed to update keyword', array('status' => 500));
+        }
+    }
+    
+    public static function delete_seo_keyword($request) {
+        global $wpdb;
+        
+        $id = intval($request->get_param('id'));
+        
+        $result = $wpdb->delete(
+            $wpdb->prefix . 'ch_seo_keywords',
+            array('id' => $id),
+            array('%d')
+        );
+        
+        if ($result) {
+            return rest_ensure_response(array('success' => true));
+        } else {
+            return new WP_Error('delete_failed', 'Failed to delete keyword', array('status' => 500));
+        }
+    }
+    
     public static function get_seo_rankings($request) {
         global $wpdb;
         
         $rankings = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}ch_seo_rankings ORDER BY created_at DESC");
         
         return rest_ensure_response($rankings);
+    }
+    
+    public static function create_seo_ranking($request) {
+        global $wpdb;
+        
+        $security = CompanyHub_Security::get_instance();
+        
+        $data = array(
+            'keyword' => $security->sanitize_input($request->get_param('keyword')),
+            'target_url' => $security->sanitize_input($request->get_param('target_url'), 'url'),
+            'current_position' => $security->sanitize_input($request->get_param('current_position'), 'int'),
+            'target_position' => $security->sanitize_input($request->get_param('target_position'), 'int'),
+            'site_id' => $security->sanitize_input($request->get_param('site_id'), 'int')
+        );
+        
+        if (empty($data['keyword'])) {
+            return new WP_Error('missing_required_fields', 'Keyword is required', array('status' => 400));
+        }
+        
+        $result = $wpdb->insert(
+            $wpdb->prefix . 'ch_seo_rankings',
+            $data,
+            array('%s', '%s', '%d', '%d', '%d')
+        );
+        
+        if ($result) {
+            return rest_ensure_response(array('success' => true, 'ranking_id' => $wpdb->insert_id));
+        } else {
+            return new WP_Error('create_failed', 'Failed to create ranking', array('status' => 500));
+        }
+    }
+    
+    public static function update_seo_ranking($request) {
+        global $wpdb;
+        
+        $id = intval($request->get_param('id'));
+        $security = CompanyHub_Security::get_instance();
+        
+        // Get current position to save as previous
+        $current_ranking = $wpdb->get_row($wpdb->prepare("SELECT current_position FROM {$wpdb->prefix}ch_seo_rankings WHERE id = %d", $id));
+        
+        $data = array(
+            'keyword' => $security->sanitize_input($request->get_param('keyword')),
+            'target_url' => $security->sanitize_input($request->get_param('target_url'), 'url'),
+            'previous_position' => $current_ranking ? $current_ranking->current_position : null,
+            'current_position' => $security->sanitize_input($request->get_param('current_position'), 'int'),
+            'target_position' => $security->sanitize_input($request->get_param('target_position'), 'int'),
+            'site_id' => $security->sanitize_input($request->get_param('site_id'), 'int')
+        );
+        
+        $result = $wpdb->update(
+            $wpdb->prefix . 'ch_seo_rankings',
+            $data,
+            array('id' => $id),
+            array('%s', '%s', '%d', '%d', '%d', '%d'),
+            array('%d')
+        );
+        
+        if ($result !== false) {
+            return rest_ensure_response(array('success' => true));
+        } else {
+            return new WP_Error('update_failed', 'Failed to update ranking', array('status' => 500));
+        }
+    }
+    
+    public static function delete_seo_ranking($request) {
+        global $wpdb;
+        
+        $id = intval($request->get_param('id'));
+        
+        $result = $wpdb->delete(
+            $wpdb->prefix . 'ch_seo_rankings',
+            array('id' => $id),
+            array('%d')
+        );
+        
+        if ($result) {
+            return rest_ensure_response(array('success' => true));
+        } else {
+            return new WP_Error('delete_failed', 'Failed to delete ranking', array('status' => 500));
+        }
     }
     
     public static function get_seo_audits($request) {
