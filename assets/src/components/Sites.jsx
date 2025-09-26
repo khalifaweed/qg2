@@ -1,6 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
+// Utility function to get favicon URL
+const getFaviconUrl = (url) => {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+  } catch (e) {
+    return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7v10c0 5.55 3.84 10 9 10s9-4.45 9-10V7l-10-5z"/></svg>';
+  }
+};
+
+// Status icons mapping
+const getStatusIcon = (status) => {
+  const icons = {
+    'active': '🟢',
+    'inactive': '🔴',
+    'maintenance': '🟡'
+  };
+  return icons[status] || '⚪';
+};
+
+const getUptimeIcon = (uptime) => {
+  const icons = {
+    'up': '✅',
+    'down': '❌',
+    'unknown': '❓'
+  };
+  return icons[uptime] || '❓';
+};
+
 function Sites() {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -878,67 +907,134 @@ function Sites() {
         </div>
       )}
 
-      <div className="sites-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sites.map((site) => (
-          <div key={site.id} className="site-card">
-            <div className="site-header">
-              <h3>{site.name}</h3>
-              <div className="site-status">
-                <span 
-                  className={`status-badge ${getStatusColor(site.status)}`}
-                >
-                  {site.status}
-                </span>
-                <span 
-                  className={`uptime-badge ${getUptimeColor(site.uptime_status)}`}
-                >
-                  {site.uptime_status || 'unknown'}
-                </span>
+          <div key={site.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden">
+            {/* Header with favicon and status */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-3">
+                  <img 
+                    src={getFaviconUrl(site.primary_url)} 
+                    alt="Favicon"
+                    className="w-8 h-8 rounded-full bg-white p-1 shadow-sm"
+                    onError={(e) => {
+                      e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="gray"><circle cx="12" cy="12" r="10"/></svg>';
+                    }}
+                  />
+                  <h3 className="font-semibold text-gray-800 truncate">{site.name}</h3>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-lg" title={`Status: ${site.status}`}>
+                    {getStatusIcon(site.status)}
+                  </span>
+                  <span className="text-lg" title={`Uptime: ${site.uptime_status || 'unknown'}`}>
+                    {getUptimeIcon(site.uptime_status)}
+                  </span>
+                </div>
               </div>
+              <a 
+                href={site.primary_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:text-blue-800 truncate block"
+              >
+                {site.primary_url}
+              </a>
             </div>
             
-            <div className="site-info">
-              <p><strong>URL:</strong> <a href={site.primary_url} target="_blank" rel="noopener noreferrer">{site.primary_url}</a></p>
-              {site.category && <p><strong>Categoria:</strong> {site.category}</p>}
-              {site.cms && <p><strong>CMS:</strong> {site.cms}</p>}
-              {site.hosting_provider && <p><strong>Hospedagem:</strong> {site.hosting_provider}</p>}
-              {site.responsible_name && <p><strong>Responsável:</strong> {site.responsible_name}</p>}
-              {site.hosting_cost > 0 && <p><strong>Custo:</strong> {formatCurrency(site.hosting_cost)}/mês</p>}
-              {site.last_uptime_check && <p><strong>Última verificação:</strong> {new Date(site.last_uptime_check).toLocaleString()}</p>}
+            {/* Content */}
+            <div className="p-4 space-y-3">
+              {/* Quick Info Grid */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {site.category && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-400">📂</span>
+                    <span className="text-gray-600 truncate">{site.category}</span>
+                  </div>
+                )}
+                {site.cms && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-400">⚙️</span>
+                    <span className="text-gray-600 truncate">{site.cms}</span>
+                  </div>
+                )}
+                {site.hosting_provider && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-400">🏢</span>
+                    <span className="text-gray-600 truncate">{site.hosting_provider}</span>
+                  </div>
+                )}
+                {site.responsible_name && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-400">👤</span>
+                    <span className="text-gray-600 truncate">{site.responsible_name}</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Financial Info */}
+              {site.hosting_cost > 0 && (
+                <div className="bg-green-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">💰 Custo Mensal</span>
+                    <span className="font-semibold text-green-700">
+                      {formatCurrency(site.hosting_cost)}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Last Check */}
+              {site.last_uptime_check && (
+                <div className="text-xs text-gray-500 flex items-center space-x-1">
+                  <span>🕒</span>
+                  <span>Última verificação: {new Date(site.last_uptime_check).toLocaleString()}</span>
+                </div>
+              )}
             </div>
             
-            <div className="site-actions">
-              <button 
-                className="btn btn-sm"
-                onClick={() => handleEdit(site)}
-              >
-                Editar
-              </button>
-              <button 
-                className="btn btn-sm btn-secondary"
-                onClick={() => handleCheckUptime(site)}
-              >
-                Verificar
-              </button>
-              <button 
-                className="btn btn-sm btn-danger"
-                onClick={() => handleDelete(site.id)}
-              >
-                Excluir
-              </button>
+            {/* Actions */}
+            <div className="bg-gray-50 px-4 py-3 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => handleEdit(site)}
+                    className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button 
+                    onClick={() => handleCheckUptime(site)}
+                    className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors"
+                  >
+                    🔍 Verificar
+                  </button>
+                </div>
+                <button 
+                  onClick={() => handleDelete(site.id)}
+                  className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 transition-colors"
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
       {sites.length === 0 && (
-        <div className="empty-state">
-          <p>Nenhum site cadastrado ainda.</p>
+        <div className="text-center py-12">
+          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <span className="text-4xl">🌐</span>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum site cadastrado</h3>
+          <p className="text-gray-500 mb-6">Comece adicionando seu primeiro site para gerenciar.</p>
           <button 
-            className="btn btn-primary"
             onClick={() => setShowForm(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Adicionar Primeiro Site
+            ➕ Adicionar Primeiro Site
           </button>
         </div>
       )}
